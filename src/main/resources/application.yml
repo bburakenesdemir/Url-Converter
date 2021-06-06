@@ -1,0 +1,6 @@
+project:
+  name: link-converter
+  version: 0.0.1.ALPHA-RELEASE
+
+server:
+  port: 8080
