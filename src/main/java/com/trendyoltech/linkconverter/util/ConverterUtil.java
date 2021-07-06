@@ -1,5 +1,7 @@
 package com.trendyoltech.linkconverter.util;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 
 import static com.trendyoltech.linkconverter.constants.LinkConstants.*;
@@ -7,8 +9,8 @@ import static com.trendyoltech.linkconverter.util.RegexUtil.getFirstMatch;
 
 public class ConverterUtil {
 
-    public static String getPath(String url) {
-        return url.replace(BASE_URL, EMPTY_STRING);
+    public static String getPath(String url,String baseUrl) {
+        return url.replace(baseUrl, EMPTY_STRING);
     }
 
     public static String getPathWithoutQuery(String path) {
@@ -33,5 +35,25 @@ public class ConverterUtil {
         }
 
         return queryParameters;
+    }
+
+    public static String generateQueryString(HashMap<String,String> queryMap){
+        ArrayList<String> tokens = new ArrayList<>();
+        queryMap.forEach((String key, String value) -> {
+            tokens.add(key + "=" + value);
+        });
+
+        Collections.reverse(tokens);
+        return String.join("&", tokens);
+    }
+
+    public static <K,V> HashMap<K,V> transformKeys(HashMap<K,K> keyMapping,  HashMap<K,V> sourceMap){
+        keyMapping.forEach((oldKey,newKey) -> {
+            if(sourceMap.containsKey(oldKey)){
+                sourceMap.put(newKey, sourceMap.get(oldKey));
+                sourceMap.remove(oldKey);
+            }
+        });
+        return sourceMap;
     }
 }
