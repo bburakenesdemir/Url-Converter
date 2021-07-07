@@ -107,7 +107,7 @@ public class ConverterService {
                 urlDto.setUrl(url);
                 break;
             default:
-                saveOperationLogToDb(urlDto.getUrl(), url, new Date(), DEEP_LINK_TO_WEB_URL);
+                saveOperationLogToDb(urlDto.getUrl(), WEB_BASE_URL, new Date(), DEEP_LINK_TO_WEB_URL);
                 url = WEB_BASE_URL;
                 break;
         }
