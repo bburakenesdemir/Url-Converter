@@ -17,4 +17,6 @@ public class LinkConstants {
     public static final String PATH_WITHOUT_QUERY_REGEX = "[^\\?]*\\??";
     public static final String SEARCH_QUERY_REGEX = "\\?q=.*";
     public static final String SLASH= "/";
+    public static final String WEB_URL_TO_DEEP_LINK = "http://localhost:8080/converter/web-url-to-deep-link";
+    public static final String DEEP_LINK_TO_WEB_URL = "http://localhost:8080/converter/deep-link-to-web-url";
 }

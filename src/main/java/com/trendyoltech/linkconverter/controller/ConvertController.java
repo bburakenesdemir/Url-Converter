@@ -16,7 +16,7 @@ public class ConvertController {
 
     private final ConverterService converterService;
 
-    @PostMapping("/web-url-to-deep-link")
+    @PostMapping(value = "/web-url-to-deep-link", produces={"application/json"}, consumes = {"application/json"})
     @ResponseStatus(HttpStatus.OK)
     public ResponseEntity<URLDto> convertToDeepLink(@RequestBody @Valid URLDto urlDto) {
         return ResponseEntity.ok(converterService.convertToDeepLink(urlDto));

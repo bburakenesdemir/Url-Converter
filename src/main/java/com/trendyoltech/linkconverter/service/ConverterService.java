@@ -1,19 +1,22 @@
 package com.trendyoltech.linkconverter.service;
 
+import com.trendyoltech.linkconverter.data.OperationLog;
+import com.trendyoltech.linkconverter.data.OperationLogRepository;
 import com.trendyoltech.linkconverter.dto.URLDto;
 import lombok.AllArgsConstructor;
-import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.HashMap;
 
 import static com.trendyoltech.linkconverter.constants.LinkConstants.*;
 import static com.trendyoltech.linkconverter.util.ConverterUtil.*;
 
-@Log4j2
 @Service
 @AllArgsConstructor
 public class ConverterService {
+
+    private final OperationLogRepository operationLogRepository;
 
     /**
      * @param urlDto contains url to convert
@@ -23,11 +26,14 @@ public class ConverterService {
         String path = getPath(urlDto.getUrl(), WEB_BASE_URL);
         String[] pathTokens = getPathWithoutQuery(path).split(SLASH);
         HashMap<String, String> queryParameters = getQueryParameters(path);
+        String url = "";
 
         if (pathTokens[0].equals(SEARCH_PATH_QUALIFIER)) {
             String query = getSearchQueryParameter(path);
-            String url = "ty://?Page=Search&Query=" + query;
+            url = "ty://?Page=Search&Query=" + query;
             urlDto.setUrl(url);
+
+            saveOperationLogToDb(urlDto.getUrl(), url, new Date(), WEB_URL_TO_DEEP_LINK);
             return urlDto;
         }
 
@@ -38,7 +44,7 @@ public class ConverterService {
             String boutiqueId = queryParameters.get(BOUTIQUE_ID_PARAMETER);
             String merchantId = queryParameters.get(MERCHANT_ID_PARAMETER);
 
-            String url = "ty://?Page=Product&ContentId=" + contentId;
+            url = "ty://?Page=Product&ContentId=" + contentId;
 
             if (boutiqueId != null) {
                 url += "&CampaignId=" + boutiqueId;
@@ -47,11 +53,13 @@ public class ConverterService {
             if (merchantId != null) {
                 url += "&MerchantId=" + merchantId;
             }
+            saveOperationLogToDb(urlDto.getUrl(), url, new Date(), WEB_URL_TO_DEEP_LINK);
             urlDto.setUrl(url);
 
             return urlDto;
         }
 
+        saveOperationLogToDb(urlDto.getUrl(), url, new Date(), WEB_URL_TO_DEEP_LINK);
         urlDto.setUrl(DEEP_BASE_HOME_URL);
 
         return urlDto;
@@ -72,7 +80,7 @@ public class ConverterService {
         keyMapping.put(MERCHANT_ID_PARAMETER_DEEP, MERCHANT_ID_PARAMETER);
         transformKeys(keyMapping,queryParameters);
 
-        String url;
+        String url = "";
 
         switch (page) {
             case "Product":
@@ -83,20 +91,35 @@ public class ConverterService {
                 if (!query.isEmpty()) {
                     url += "?" + query;
                 }
+                saveOperationLogToDb(urlDto.getUrl(), url, new Date(), DEEP_LINK_TO_WEB_URL);
                 urlDto.setUrl(url);
                 break;
 
             case "Search":
                 url = "https://www.trendyol.com/sr?q=" + queryParameters.get(QUERY_PARAMETER_DEEP);
+                saveOperationLogToDb(urlDto.getUrl(), url, new Date(), DEEP_LINK_TO_WEB_URL);
                 urlDto.setUrl(url);
                 break;
             default:
+                saveOperationLogToDb(urlDto.getUrl(), url, new Date(), DEEP_LINK_TO_WEB_URL);
                 url = WEB_BASE_URL;
                 break;
         }
 
+        saveOperationLogToDb(urlDto.getUrl(), url, new Date(), DEEP_LINK_TO_WEB_URL);
         urlDto.setUrl(url);
 
         return urlDto;
+    }
+
+    private void saveOperationLogToDb(String requestBody, String responseBody, Date requestTime, String requestUrl){
+        OperationLog operationLog = new OperationLog();
+        operationLog.setRequest(requestBody);
+        operationLog.setResponse(responseBody);
+        operationLog.setRequestTime(requestTime);
+        operationLog.setResponseTime(new Date());
+        operationLog.setRequestUrl(requestUrl);
+
+        operationLogRepository.save(operationLog);
     }
 }
