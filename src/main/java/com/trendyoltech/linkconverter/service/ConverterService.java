@@ -3,6 +3,7 @@ package com.trendyoltech.linkconverter.service;
 import com.trendyoltech.linkconverter.data.OperationLog;
 import com.trendyoltech.linkconverter.data.OperationLogRepository;
 import com.trendyoltech.linkconverter.dto.URLDto;
+import com.trendyoltech.linkconverter.exception.BadRequestException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,7 @@ import java.util.HashMap;
 
 import static com.trendyoltech.linkconverter.constants.LinkConstants.*;
 import static com.trendyoltech.linkconverter.util.ConverterUtil.*;
+import static com.trendyoltech.linkconverter.util.ErrorUtil.*;
 
 @Service
 @AllArgsConstructor
@@ -27,6 +29,8 @@ public class ConverterService {
         String[] pathTokens = getPathWithoutQuery(path).split(SLASH);
         HashMap<String, String> queryParameters = getQueryParameters(path);
         String url = "";
+
+        validateUrl(urlDto.getUrl(),WEB_BASE_URL);
 
         if (pathTokens[0].equals(SEARCH_PATH_QUALIFIER)) {
             String query = getSearchQueryParameter(path);
@@ -74,6 +78,8 @@ public class ConverterService {
         HashMap<String, String> queryParameters = getQueryParameters(path);
         HashMap<String, String> keyMapping = new HashMap<>();
 
+        validateUrl(urlDto.getUrl(),DEEP_BASE_URL);
+
         String page = queryParameters.get(PAGE_PARAMETER_DEEP);
         queryParameters.remove(PAGE_PARAMETER_DEEP);
         keyMapping.put(CAMPAIGN_ID_PARAMETER_DEEP, BOUTIQUE_ID_PARAMETER);
@@ -110,6 +116,15 @@ public class ConverterService {
         urlDto.setUrl(url);
 
         return urlDto;
+    }
+
+    private void validateUrl(String url, String baseUrl ){
+        if(!url.startsWith(baseUrl)){
+            throw new BadRequestException(URL_FORMAT_ERROR + url);
+        }else if(url.contains(" ")){
+            throw new BadRequestException(URL_CONTAINS_EMPTY_CHARACTER + url);
+        }
+
     }
 
     private void saveOperationLogToDb(String requestBody, String responseBody, Date requestTime, String requestUrl){
