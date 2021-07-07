@@ -1,6 +1,22 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  datasource:
+    url: jdbc:mysql://localhost:3306/link-converter
+    driver-class-name: com.mysql.jdbc.Driver
+    username: root
+    password: Burak1996!
+
 project:
   name: link-converter
   version: 0.0.1.ALPHA-RELEASE
 
 server:
   port: 8080
+
+
