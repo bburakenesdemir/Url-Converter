@@ -8,7 +8,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 import static com.trendyoltech.linkconverter.constants.LinkConstants.*;
 import static com.trendyoltech.linkconverter.util.ConverterUtil.*;
@@ -27,14 +27,17 @@ public class ConverterService {
     public URLDto convertToDeepLink(URLDto urlDto) {
         String path = getPath(urlDto.getUrl(), WEB_BASE_URL);
         String[] pathTokens = getPathWithoutQuery(path).split(SLASH);
-        HashMap<String, String> queryParameters = getQueryParameters(path);
+        LinkedHashMap<String, String> queryParameters = getQueryParameters(path);
         String url = "";
-
-        validateUrl(urlDto.getUrl(),WEB_BASE_URL);
+        LinkedHashMap<String, String> deepQueryParameters = new LinkedHashMap<>();
+        validateUrl(urlDto.getUrl(), WEB_BASE_URL);
 
         if (pathTokens[0].equals(SEARCH_PATH_QUALIFIER)) {
-            String query = getSearchQueryParameter(path);
-            url = "ty://?Page=Search&Query=" + query;
+            String query = queryParameters.get("q");
+            deepQueryParameters.put(PAGE_PARAMETER_DEEP, "Search");
+            deepQueryParameters.put(QUERY_PARAMETER_DEEP, query);
+
+            url = "ty://?" + generateQueryString(deepQueryParameters);
             urlDto.setUrl(url);
 
             saveOperationLogToDb(urlDto.getUrl(), url, new Date(), WEB_URL_TO_DEEP_LINK);
@@ -44,19 +47,13 @@ public class ConverterService {
         if (path.contains(PRODUCT_PATH_QUALIFIER)) {
             String[] tokens = pathTokens[1].split("-");
             String contentId = tokens[tokens.length - 1];
+            deepQueryParameters.put(PAGE_PARAMETER_DEEP, "Product");
+            deepQueryParameters.put(CONTENT_ID_PARAMETER_DEEP, contentId);
+            deepQueryParameters.put(CAMPAIGN_ID_PARAMETER_DEEP, queryParameters.get(BOUTIQUE_ID_PARAMETER));
+            deepQueryParameters.put(MERCHANT_ID_PARAMETER_DEEP, queryParameters.get(MERCHANT_ID_PARAMETER));
 
-            String boutiqueId = queryParameters.get(BOUTIQUE_ID_PARAMETER);
-            String merchantId = queryParameters.get(MERCHANT_ID_PARAMETER);
+            url = "ty://?" + generateQueryString(deepQueryParameters);
 
-            url = "ty://?Page=Product&ContentId=" + contentId;
-
-            if (boutiqueId != null) {
-                url += "&CampaignId=" + boutiqueId;
-            }
-
-            if (merchantId != null) {
-                url += "&MerchantId=" + merchantId;
-            }
             saveOperationLogToDb(urlDto.getUrl(), url, new Date(), WEB_URL_TO_DEEP_LINK);
             urlDto.setUrl(url);
 
@@ -75,28 +72,29 @@ public class ConverterService {
      */
     public URLDto convertToWebUrl(URLDto urlDto) {
         String path = getPath(urlDto.getUrl(), DEEP_BASE_URL);
-        HashMap<String, String> queryParameters = getQueryParameters(path);
-        HashMap<String, String> keyMapping = new HashMap<>();
+        LinkedHashMap<String, String> queryParameters = getQueryParameters(path);
 
-        validateUrl(urlDto.getUrl(),DEEP_BASE_URL);
+        validateUrl(urlDto.getUrl(), DEEP_BASE_URL);
 
         String page = queryParameters.get(PAGE_PARAMETER_DEEP);
-        queryParameters.remove(PAGE_PARAMETER_DEEP);
-        keyMapping.put(CAMPAIGN_ID_PARAMETER_DEEP, BOUTIQUE_ID_PARAMETER);
-        keyMapping.put(MERCHANT_ID_PARAMETER_DEEP, MERCHANT_ID_PARAMETER);
-        transformKeys(keyMapping,queryParameters);
 
         String url = "";
 
         switch (page) {
             case "Product":
                 url = "https://www.trendyol.com/brand/name-p-" + queryParameters.get(CONTENT_ID_PARAMETER_DEEP);
-                queryParameters.remove(CONTENT_ID_PARAMETER_DEEP);
-                String query = generateQueryString(queryParameters);
+
+                LinkedHashMap<String, String> webQueryParameters = new LinkedHashMap<>();
+
+                webQueryParameters.put(BOUTIQUE_ID_PARAMETER, queryParameters.get(CAMPAIGN_ID_PARAMETER_DEEP));
+                webQueryParameters.put(MERCHANT_ID_PARAMETER, queryParameters.get(MERCHANT_ID_PARAMETER_DEEP));
+
+                String query = generateQueryString(webQueryParameters);
 
                 if (!query.isEmpty()) {
                     url += "?" + query;
                 }
+
                 saveOperationLogToDb(urlDto.getUrl(), url, new Date(), DEEP_LINK_TO_WEB_URL);
                 urlDto.setUrl(url);
                 break;
@@ -118,16 +116,16 @@ public class ConverterService {
         return urlDto;
     }
 
-    private void validateUrl(String url, String baseUrl ){
-        if(!url.startsWith(baseUrl)){
+    private void validateUrl(String url, String baseUrl) {
+        if (!url.startsWith(baseUrl)) {
             throw new BadRequestException(URL_FORMAT_ERROR + url);
-        }else if(url.contains(" ")){
+        } else if (url.contains(" ")) {
             throw new BadRequestException(URL_CONTAINS_EMPTY_CHARACTER + url);
         }
 
     }
 
-    private void saveOperationLogToDb(String requestBody, String responseBody, Date requestTime, String requestUrl){
+    private void saveOperationLogToDb(String requestBody, String responseBody, Date requestTime, String requestUrl) {
         OperationLog operationLog = new OperationLog();
         operationLog.setRequest(requestBody);
         operationLog.setResponse(responseBody);
